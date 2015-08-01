@@ -21,6 +21,7 @@ type Loader struct {
 	resources []Resource
 	images    map[string]*Texture
 	jsons     map[string]string
+	sounds    map[string]*Sound
 }
 
 func NewLoader() *Loader {
@@ -28,6 +29,7 @@ func NewLoader() *Loader {
 		resources: make([]Resource, 1),
 		images:    make(map[string]*Texture),
 		jsons:     make(map[string]string),
+		sounds:    make(map[string]*Sound),
 	}
 }
 
@@ -44,6 +46,10 @@ func (l *Loader) Json(name string) string {
 	return l.jsons[name]
 }
 
+func (l *Loader) Sound(name string) *Sound {
+	return l.sounds[name]
+}
+
 func (l *Loader) Load(onFinish func()) {
 	for _, r := range l.resources {
 		switch r.kind {
@@ -56,6 +62,13 @@ func (l *Loader) Load(onFinish func()) {
 			data, err := loadJson(r)
 			if err == nil {
 				l.jsons[r.name] = data
+			}
+		case "wav", "flac":
+			data, err := loadSound(r)
+			if err == nil {
+				l.sounds[r.name] = data
+			} else {
+				panic(err)
 			}
 		}
 	}

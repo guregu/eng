@@ -16,11 +16,16 @@ import (
 	"os"
 	"runtime"
 
+	"azul3d.org/native/al.v1"
 	"azul3d.org/native/glfw.v4"
 	"github.com/ajhager/webgl"
 )
 
 var window *glfw.Window
+
+func init() {
+	runtime.LockOSThread()
+}
 
 // fatalErr calls log.Fatal with the given error if it is non-nil.
 func fatalErr(err error) {
@@ -30,9 +35,8 @@ func fatalErr(err error) {
 }
 
 func run(title string, width, height int, fullscreen bool) {
-	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	fatalErr(glfw.Init())
 
 	monitor, err := glfw.GetPrimaryMonitor()
@@ -104,6 +108,9 @@ func run(title string, width, height int, fullscreen bool) {
 		responder.Type(char)
 	})
 
+	audioDevice, err = al.OpenDevice("", nil)
+	fatalErr(err)
+
 	responder.Preload()
 	Files.Load(func() {})
 	responder.Setup()
@@ -139,6 +146,13 @@ func height() float32 {
 }
 
 func exit() {
+	// TODO: close audio device
+	for _, s := range Files.sounds {
+		s.Delete()
+	}
+	if audioDevice != nil {
+		audioDevice.Close()
+	}
 	fatalErr(window.SetShouldClose(true))
 }
 
