@@ -88,13 +88,8 @@ func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config,
 	}
 
 	config = decoder.Config()
-	// Guess duration (mostly accurate for WAVs)
-	duration = float64(fi.Size()) / float64(config.SampleRate*config.Channels*16/8)
 
-	// Create a buffer that can hold 3 second of audio samples
-	// bufSize := int(duration * float64(config.SampleRate*config.Channels)) // undersized for flac files
 	// Convert everything to 16-bit samples
-	// fmt.Println("bufsize", 1024*1024*5)
 	bufSize := int(fi.Size())
 	samples = make(audio.PCM16Samples, 0, bufSize)
 
@@ -111,10 +106,9 @@ func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config,
 		read += r
 		samples = append(samples, buf[:r]...)
 	}
-	err = nil
 
 	duration = 1 / float64(config.SampleRate) * float64(read)
-	return []audio.PCM16(samples)[:read], config, float64(duration), err
+	return []audio.PCM16(samples)[:read], config, float64(duration), nil
 }
 
 func init() {
