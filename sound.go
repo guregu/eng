@@ -25,6 +25,7 @@ type Sound struct {
 func (s *Sound) Play() {
 	if s.looping {
 		audioDevice.Sourcei(s.source, al.LOOPING, al.FALSE)
+		s.looping = false
 	}
 	audioDevice.SourcePlay(s.source)
 }
@@ -32,6 +33,7 @@ func (s *Sound) Play() {
 func (s *Sound) Loop() {
 	if !s.looping {
 		audioDevice.Sourcei(s.source, al.LOOPING, al.TRUE)
+		s.looping = true
 	}
 	audioDevice.SourcePlay(s.source)
 }
