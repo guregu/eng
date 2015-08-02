@@ -63,12 +63,10 @@ func (l *Loader) Replace(name, url string) {
 		if old, ok := l.sounds[name]; ok {
 			old.Delete()
 		}
-		if data, err := loadSound(r); err == nil {
-			l.sounds[r.name] = data
-			l.loaded[r] = struct{}{}
-		} else {
-			panic(err)
-		}
+		data, err := loadSound(r)
+		fatalErr(err)
+		l.sounds[r.name] = data
+		l.loaded[r] = struct{}{}
 	}
 }
 
@@ -81,24 +79,19 @@ func (l *Loader) Load(onFinish func()) {
 		switch r.kind {
 		case "png":
 			data, err := loadImage(r)
-			if err == nil {
-				l.images[r.name] = NewTexture(data)
-				l.loaded[r] = struct{}{}
-			}
+			fatalErr(err)
+			l.images[r.name] = NewTexture(data)
+			l.loaded[r] = struct{}{}
 		case "json":
 			data, err := loadJson(r)
-			if err == nil {
-				l.jsons[r.name] = data
-				l.loaded[r] = struct{}{}
-			}
+			fatalErr(err)
+			l.jsons[r.name] = data
+			l.loaded[r] = struct{}{}
 		case "wav", "flac":
 			data, err := loadSound(r)
-			if err == nil {
-				l.sounds[r.name] = data
-				l.loaded[r] = struct{}{}
-			} else {
-				panic(err)
-			}
+			fatalErr(err)
+			l.sounds[r.name] = data
+			l.loaded[r] = struct{}{}
 		}
 	}
 	onFinish()
