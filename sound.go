@@ -1,7 +1,7 @@
 package engi
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"unsafe"
 
@@ -12,14 +12,27 @@ import (
 	_ "azul3d.org/audio/wav.v1"
 )
 
+var audioDevice *al.Device
+
 type Sound struct {
 	source     uint32
 	buffer     uint32
 	duration   float64 // seconds
 	sampleRate int
+	looping    bool
 }
 
 func (s *Sound) Play() {
+	if s.looping {
+		audioDevice.Sourcei(s.source, al.LOOPING, al.FALSE)
+	}
+	audioDevice.SourcePlay(s.source)
+}
+
+func (s *Sound) Loop() {
+	if !s.looping {
+		audioDevice.Sourcei(s.source, al.LOOPING, al.TRUE)
+	}
 	audioDevice.SourcePlay(s.source)
 }
 
@@ -32,18 +45,10 @@ func (s *Sound) Delete() {
 	audioDevice.DeleteBuffers(1, &s.buffer)
 }
 
-var audioDevice *al.Device
-
-func init() {
-	// go func() {
-	// var err error
-	// audioDevice, err = al.OpenDevice("", nil)
-	// fatalErr(err)
-	// }()
-	// defer device.Close()
-	al.SetErrorHandler(func(e error) {
-		panic(e)
-	})
+func (s *Sound) Playing() bool {
+	var state int32
+	audioDevice.GetSourcei(s.source, al.SOURCE_STATE, &state)
+	return state == al.PLAYING || state == al.LOOPING
 }
 
 func loadSound(r Resource) (*Sound, error) {
@@ -51,22 +56,18 @@ func loadSound(r Resource) (*Sound, error) {
 	if err != nil {
 		return nil, err
 	}
-	// al.SetErrorHandler(func(e error) {
-	// 	err = e
-	// })
+
 	s := Sound{
 		duration:   duration,
 		sampleRate: config.SampleRate,
 	}
 	audioDevice.GenSources(1, &s.source)
 	audioDevice.GenBuffers(1, &s.buffer)
-	fmt.Println("samples", samples[0:100])
 	if config.Channels == 1 {
 		audioDevice.BufferData(s.buffer, al.FORMAT_MONO16, unsafe.Pointer(&samples[0]), int32(int(unsafe.Sizeof(samples[0]))*len(samples)), int32(config.SampleRate))
 	} else {
 		audioDevice.BufferData(s.buffer, al.FORMAT_STEREO16, unsafe.Pointer(&samples[0]), int32(int(unsafe.Sizeof(samples[0]))*len(samples)), int32(config.SampleRate))
 	}
-	fmt.Println("src", s.source, "buff", s.buffer)
 	audioDevice.Sourcei(s.source, al.BUFFER, int32(s.buffer))
 	return &s, err
 }
@@ -95,7 +96,6 @@ func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config,
 	// Convert everything to 16-bit samples
 	// fmt.Println("bufsize", 1024*1024*5)
 	bufSize := int(fi.Size())
-	fmt.Println(bufSize)
 	samples = make(audio.PCM16Samples, 0, bufSize)
 
 	// TODO: surely there is a better way to do this
@@ -114,6 +114,11 @@ func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config,
 	err = nil
 
 	duration = 1 / float64(config.SampleRate) * float64(read)
-	fmt.Println("samples", len(samples), "read", read)
 	return []audio.PCM16(samples)[:read], config, float64(duration), err
+}
+
+func init() {
+	al.SetErrorHandler(func(err error) {
+		log.Println("[audio]", err)
+	})
 }

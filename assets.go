@@ -7,6 +7,7 @@ package engi
 import (
 	"math"
 	"path"
+	"path/filepath"
 
 	"github.com/ajhager/webgl"
 )
@@ -19,6 +20,7 @@ type Resource struct {
 
 type Loader struct {
 	resources []Resource
+	loaded    map[Resource]struct{}
 	images    map[string]*Texture
 	jsons     map[string]string
 	sounds    map[string]*Sound
@@ -27,6 +29,7 @@ type Loader struct {
 func NewLoader() *Loader {
 	return &Loader{
 		resources: make([]Resource, 1),
+		loaded:    make(map[Resource]struct{}),
 		images:    make(map[string]*Texture),
 		jsons:     make(map[string]string),
 		sounds:    make(map[string]*Sound),
@@ -35,6 +38,7 @@ func NewLoader() *Loader {
 
 func (l *Loader) Add(name, url string) {
 	kind := path.Ext(url)[1:]
+	url = filepath.FromSlash(url)
 	l.resources = append(l.resources, Resource{kind, name, url})
 }
 
@@ -50,23 +54,48 @@ func (l *Loader) Sound(name string) *Sound {
 	return l.sounds[name]
 }
 
+func (l *Loader) Replace(name, url string) {
+	kind := path.Ext(url)[1:]
+	url = filepath.FromSlash(url)
+	r := Resource{kind, name, url}
+	switch kind {
+	case "wav", "flac":
+		if old, ok := l.sounds[name]; ok {
+			old.Delete()
+		}
+		if data, err := loadSound(r); err == nil {
+			l.sounds[r.name] = data
+			l.loaded[r] = struct{}{}
+		} else {
+			panic(err)
+		}
+	}
+}
+
 func (l *Loader) Load(onFinish func()) {
 	for _, r := range l.resources {
+		if _, loaded := l.loaded[r]; loaded {
+			// don't load stuff twice
+			continue
+		}
 		switch r.kind {
 		case "png":
 			data, err := loadImage(r)
 			if err == nil {
 				l.images[r.name] = NewTexture(data)
+				l.loaded[r] = struct{}{}
 			}
 		case "json":
 			data, err := loadJson(r)
 			if err == nil {
 				l.jsons[r.name] = data
+				l.loaded[r] = struct{}{}
 			}
 		case "wav", "flac":
 			data, err := loadSound(r)
 			if err == nil {
 				l.sounds[r.name] = data
+				l.loaded[r] = struct{}{}
 			} else {
 				panic(err)
 			}
