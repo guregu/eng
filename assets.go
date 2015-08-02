@@ -24,6 +24,7 @@ type Loader struct {
 	images    map[string]*Texture
 	jsons     map[string]string
 	sounds    map[string]*Sound
+	streams   map[string]*Stream
 }
 
 func NewLoader() *Loader {
@@ -33,6 +34,7 @@ func NewLoader() *Loader {
 		images:    make(map[string]*Texture),
 		jsons:     make(map[string]string),
 		sounds:    make(map[string]*Sound),
+		streams:   make(map[string]*Stream),
 	}
 }
 
@@ -54,20 +56,8 @@ func (l *Loader) Sound(name string) *Sound {
 	return l.sounds[name]
 }
 
-func (l *Loader) Replace(name, url string) {
-	kind := path.Ext(url)[1:]
-	url = filepath.FromSlash(url)
-	r := Resource{kind, name, url}
-	switch kind {
-	case "wav", "flac":
-		if old, ok := l.sounds[name]; ok {
-			old.Delete()
-		}
-		data, err := loadSound(r)
-		fatalErr(err)
-		l.sounds[r.name] = data
-		l.loaded[r] = struct{}{}
-	}
+func (l *Loader) Stream(name string) *Stream {
+	return l.streams[name]
 }
 
 func (l *Loader) Load(onFinish func()) {
@@ -91,6 +81,11 @@ func (l *Loader) Load(onFinish func()) {
 			data, err := loadSound(r)
 			fatalErr(err)
 			l.sounds[r.name] = data
+			l.loaded[r] = struct{}{}
+		case "flac-s":
+			data, err := loadStream(r)
+			fatalErr(err)
+			l.streams[r.name] = data
 			l.loaded[r] = struct{}{}
 		}
 	}

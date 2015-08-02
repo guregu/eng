@@ -16,7 +16,6 @@ import (
 	"os"
 	"runtime"
 
-	"azul3d.org/native/al.v1"
 	"azul3d.org/native/glfw.v4"
 	"github.com/ajhager/webgl"
 )
@@ -108,8 +107,7 @@ func run(title string, width, height int, fullscreen bool) {
 		responder.Type(char)
 	})
 
-	audioDevice, err = al.OpenDevice("", nil)
-	fatalErr(err)
+	setupAudio()
 
 	responder.Preload()
 	Files.Load(func() {})
@@ -146,13 +144,7 @@ func height() float32 {
 }
 
 func exit() {
-	// TODO: close audio device
-	for _, s := range Files.sounds {
-		s.Delete()
-	}
-	if audioDevice != nil {
-		audioDevice.Close()
-	}
+	cleanupAudio()
 	fatalErr(window.SetShouldClose(true))
 }
 
