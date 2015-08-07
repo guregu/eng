@@ -44,7 +44,7 @@ func (s *Stream) Loop() {
 }
 
 func (s *Stream) play() {
-	s.done = make(chan struct{}, 1)
+	s.done = make(chan struct{})
 	s.source = nextAvailableSource()
 	s.reset()
 	audioDevice.Sourcei(s.source, al.LOOPING, al.FALSE)
@@ -68,6 +68,9 @@ func (s *Stream) reset() {
 }
 
 func (s *Stream) run() {
+	defer func() {
+		s.done = nil
+	}()
 	for {
 		select {
 		case <-s.done:
@@ -83,6 +86,7 @@ func (s *Stream) run() {
 				switch {
 				case err == audio.EOS:
 					if s.looping {
+						// time.Sleep(500 * time.Millisecond)
 						// start over
 						s.reset()
 					}
@@ -133,7 +137,7 @@ func (s *Stream) fill(buffer uint32) error {
 
 func (s *Stream) Delete() {
 	if s.done != nil {
-		s.done <- struct{}{}
+		close(s.done)
 	}
 	s.file.Close()
 	audioDevice.DeleteBuffers(buffersPerStream, &s.buffers[0])
@@ -147,7 +151,7 @@ func (s *Stream) Playing() bool {
 
 func (s *Stream) Stop() {
 	if s.done != nil {
-		s.done <- struct{}{}
+		close(s.done)
 	}
 	audioDevice.SourceStop(s.source)
 	s.unqueue()
