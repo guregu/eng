@@ -18,6 +18,7 @@ import (
 
 	"azul3d.org/native/glfw.v4"
 	"github.com/ajhager/webgl"
+	"github.com/kardianos/osext"
 )
 
 var window *glfw.Window
@@ -44,8 +45,6 @@ func run(title string, width, height int, fullscreen bool) {
 	fatalErr(err)
 
 	if fullscreen {
-		width = mode.Width
-		height = mode.Height
 		fatalErr(glfw.WindowHint(glfw.Decorated, 0))
 	} else {
 		monitor = nil
@@ -361,4 +360,10 @@ func LoadImage(data interface{}) Image {
 	draw.Draw(newm, newm.Bounds(), m, b.Min, draw.Src)
 
 	return &ImageObject{newm}
+}
+
+func AppDir() string {
+	dir, err := osext.ExecutableFolder()
+	fatalErr(err)
+	return dir
 }
