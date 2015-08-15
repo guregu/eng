@@ -5,6 +5,7 @@
 package engi
 
 import (
+	"io"
 	"math"
 	"path"
 	"path/filepath"
@@ -13,9 +14,10 @@ import (
 )
 
 type Resource struct {
-	kind string
-	name string
-	url  string
+	kind   string
+	name   string
+	url    string
+	reader io.Reader
 }
 
 type Loader struct {
@@ -41,7 +43,19 @@ func NewLoader() *Loader {
 func (l *Loader) Add(name, url string) {
 	kind := path.Ext(url)[1:]
 	url = filepath.FromSlash(url)
-	l.resources = append(l.resources, Resource{kind, name, url})
+	l.resources = append(l.resources, Resource{
+		kind: kind,
+		name: name,
+		url:  url,
+	})
+}
+
+func (l *Loader) AddReader(name, kind string, r io.Reader) {
+	l.resources = append(l.resources, Resource{
+		kind:   kind,
+		name:   name,
+		reader: r,
+	})
 }
 
 func (l *Loader) Image(name string) *Texture {

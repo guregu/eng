@@ -45,6 +45,7 @@ func run(title string, width, height int, fullscreen bool) {
 	fatalErr(err)
 
 	if fullscreen {
+		fatalErr(glfw.WindowHint(glfw.AutoIconify, glfw.True))
 		fatalErr(glfw.WindowHint(glfw.Decorated, 0))
 	} else {
 		monitor = nil
@@ -273,12 +274,17 @@ func (i *ImageObject) Height() int {
 }
 
 func loadImage(r Resource) (Image, error) {
-	file, err := os.Open(r.url)
-	if err != nil {
-		return nil, err
+	reader := r.reader
+	if r.reader == nil {
+		file, err := os.Open(r.url)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+		reader = file
 	}
-	defer file.Close()
-	img, _, err := image.Decode(file)
+
+	img, _, err := image.Decode(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -360,6 +366,10 @@ func LoadImage(data interface{}) Image {
 	draw.Draw(newm, newm.Bounds(), m, b.Min, draw.Src)
 
 	return &ImageObject{newm}
+}
+
+func Minimize() {
+	fatalErr(window.Iconify())
 }
 
 func AppDir() string {

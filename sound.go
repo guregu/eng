@@ -16,6 +16,7 @@ import (
 var (
 	audioDevice  *al.Device
 	audioSources []uint32
+	muted        bool
 )
 
 const (
@@ -52,8 +53,10 @@ func (s *Stream) play() {
 	for _, buf := range s.buffers {
 		s.fill(buf)
 	}
+
 	audioDevice.SourceQueueBuffers(s.source, s.buffers)
 	go s.run()
+
 	audioDevice.SourcePlay(s.source)
 }
 
@@ -104,6 +107,7 @@ func (s *Stream) run() {
 
 func (s *Stream) unqueue() []uint32 {
 	var processed int32
+
 	audioDevice.GetSourcei(s.source, al.BUFFERS_PROCESSED, &processed)
 	if processed == 0 {
 		return nil
@@ -140,10 +144,14 @@ func (s *Stream) Delete() {
 		close(s.done)
 	}
 	s.file.Close()
+
 	audioDevice.DeleteBuffers(buffersPerStream, &s.buffers[0])
 }
 
 func (s *Stream) Playing() bool {
+	if s.source == 0 {
+		return false
+	}
 	var state int32
 	audioDevice.GetSourcei(s.source, al.SOURCE_STATE, &state)
 	return state == al.PLAYING
@@ -155,6 +163,7 @@ func (s *Stream) Stop() {
 	}
 	audioDevice.SourceStop(s.source)
 	s.unqueue()
+	s.source = 0
 }
 
 func loadStream(r Resource) (*Stream, error) {
@@ -234,6 +243,22 @@ func (s *Sound) Duration() time.Duration {
 	return s.duration
 }
 
+func ToggleMute() {
+	muted = !muted
+	gain := float32(1)
+	if muted {
+		gain = 0
+	}
+
+	for _, src := range audioSources {
+		audioDevice.Sourcef(src, al.GAIN, gain)
+	}
+}
+
+func Muted() bool {
+	return muted
+}
+
 func setupAudio() {
 	var err error
 	audioDevice, err = al.OpenDevice("", nil)
@@ -249,6 +274,7 @@ func nextAvailableSource() uint32 {
 		var state int32
 		audioDevice.GetSourcei(source, al.SOURCE_STATE, &state)
 		if state != al.PLAYING {
+			audioDevice.Sourcei(source, al.BUFFER, 0)
 			return source
 		}
 	}
