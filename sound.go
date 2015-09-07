@@ -357,12 +357,16 @@ func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config,
 
 func cleanupAudio() {
 	audioDevice.DeleteSources(int32(len(audioSources)), &audioSources[0])
-	// TODO: openal: invalid name parameter
-	// error somewhere around here
 	for _, s := range Files.sounds {
+		if s.Playing() {
+			s.Stop()
+		}
 		s.Delete()
 	}
 	for _, s := range Files.streams {
+		if s.Playing() {
+			s.Stop()
+		}
 		s.Delete()
 	}
 	if audioDevice != nil {
