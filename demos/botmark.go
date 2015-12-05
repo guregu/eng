@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ajhager/engi"
+	"github.com/guregu/engi"
 	"math/rand"
 )
 
