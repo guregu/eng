@@ -15,6 +15,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/ajhager/webgl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -373,4 +374,44 @@ func AppDir() string {
 	dir, err := osext.ExecutableFolder()
 	fatalErr(err)
 	return dir
+}
+
+type JoystickState struct {
+	Buttons []byte
+	Axes    []float32
+}
+
+func Joysticks() map[int]JoystickState {
+	states := make(map[int]JoystickState)
+	for js := glfw.Joystick1; js <= glfw.JoystickLast; js++ {
+		if !glfw.JoystickPresent(js) {
+			continue
+		}
+		states[int(js)] = JoystickState{
+			Buttons: glfw.GetJoystickButtons(js),
+			Axes:    glfw.GetJoystickAxes(js),
+		}
+	}
+	return states
+}
+
+// This is going away, don't use it.
+func DumpJoysticks() {
+	var present []glfw.Joystick
+	for i := glfw.Joystick1; i <= glfw.JoystickLast; i++ {
+		active := glfw.JoystickPresent(i)
+		if active {
+			present = append(present, i)
+		}
+	}
+
+	go func() {
+		for {
+			for _, js := range present {
+				log.Println(js, glfw.GetJoystickName(js), glfw.GetJoystickButtons(js))
+				log.Println("   ", glfw.GetJoystickAxes(js))
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
 }
