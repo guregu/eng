@@ -17,6 +17,7 @@ var (
 	audioDevice  *al.Device
 	audioSources []uint32
 	muted        bool
+	gain         float32
 )
 
 const (
@@ -245,18 +246,32 @@ func (s *Sound) Duration() time.Duration {
 
 func ToggleMute() {
 	muted = !muted
-	gain := float32(1)
+	g := gain
 	if muted {
-		gain = 0
+		g = 0
 	}
 
 	for _, src := range audioSources {
-		audioDevice.Sourcef(src, al.GAIN, gain)
+		audioDevice.Sourcef(src, al.GAIN, g)
 	}
 }
 
 func Muted() bool {
 	return muted
+}
+
+func SetGain(g float32) {
+	if g != gain {
+		gain = g
+
+		if muted {
+			return
+		}
+
+		for _, src := range audioSources {
+			audioDevice.Sourcef(src, al.GAIN, g)
+		}
+	}
 }
 
 func setupAudio() {
