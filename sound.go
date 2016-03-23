@@ -28,7 +28,44 @@ const (
 	buffersPerStream  = 3
 )
 
-type Stream struct {
+type Sound interface {
+	Play()
+	Loop()
+	Stop()
+	Playing() bool
+}
+
+func ToggleMute() {
+	muted = !muted
+	g := gain
+	if muted {
+		g = 0
+	}
+
+	for _, src := range audioSources {
+		audioDevice.Sourcef(src, al.GAIN, g)
+	}
+}
+
+func Muted() bool {
+	return muted
+}
+
+func SetGain(g float32) {
+	if g != gain {
+		gain = g
+
+		if muted {
+			return
+		}
+
+		for _, src := range audioSources {
+			audioDevice.Sourcef(src, al.GAIN, g)
+		}
+	}
+}
+
+type Music struct {
 	source  uint32
 	buffers []uint32
 	looping bool
@@ -39,17 +76,17 @@ type Stream struct {
 	file    *os.File
 }
 
-func (s *Stream) Play() {
+func (s *Music) Play() {
 	s.looping = false
 	s.play()
 }
 
-func (s *Stream) Loop() {
+func (s *Music) Loop() {
 	s.looping = true
 	s.play()
 }
 
-func (s *Stream) play() {
+func (s *Music) play() {
 	s.context, s.cancel = context.WithCancel(audioContext)
 	s.source = nextAvailableSource()
 	s.reset()
@@ -65,7 +102,7 @@ func (s *Stream) play() {
 	audioDevice.SourcePlay(s.source)
 }
 
-func (s *Stream) reset() {
+func (s *Music) reset() {
 	// flac pkg can't seek yet so ghetto seek to 0
 	s.file.Seek(0, os.SEEK_SET)
 	var err error
@@ -75,7 +112,7 @@ func (s *Stream) reset() {
 	}
 }
 
-func (s *Stream) run() {
+func (s *Music) run() {
 	for {
 		select {
 		case <-s.context.Done():
@@ -107,7 +144,7 @@ func (s *Stream) run() {
 	}
 }
 
-func (s *Stream) unqueue() []uint32 {
+func (s *Music) unqueue() []uint32 {
 	var processed int32
 
 	audioDevice.GetSourcei(s.source, al.BUFFERS_PROCESSED, &processed)
@@ -119,7 +156,7 @@ func (s *Stream) unqueue() []uint32 {
 	return available
 }
 
-func (s *Stream) fill(buffer uint32) error {
+func (s *Music) fill(buffer uint32) error {
 	config := s.decoder.Config()
 	bufSize := config.SampleRate
 	samples := make(audio.PCM16Samples, bufSize)
@@ -141,7 +178,7 @@ func (s *Stream) fill(buffer uint32) error {
 	return err
 }
 
-func (s *Stream) Delete() {
+func (s *Music) Delete() {
 	if s.cancel != nil {
 		s.cancel()
 	}
@@ -149,7 +186,7 @@ func (s *Stream) Delete() {
 	audioDevice.DeleteBuffers(buffersPerStream, &s.buffers[0])
 }
 
-func (s *Stream) Playing() bool {
+func (s *Music) Playing() bool {
 	if s.source == 0 {
 		return false
 	}
@@ -158,7 +195,7 @@ func (s *Stream) Playing() bool {
 	return state == al.PLAYING
 }
 
-func (s *Stream) Stop() {
+func (s *Music) Stop() {
 	if s.cancel != nil {
 		s.cancel()
 	}
@@ -167,14 +204,14 @@ func (s *Stream) Stop() {
 	s.source = 0
 }
 
-func loadStream(r Resource) (*Stream, error) {
+func loadMusic(r Resource) (*Music, error) {
 	// func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config, duration time.Duration, err error) {
 	file, err := os.Open(r.url)
 	if err != nil {
 		return nil, err
 	}
 
-	s := Stream{
+	s := Music{
 		buffers: make([]uint32, buffersPerStream),
 		file:    file,
 	}
@@ -184,7 +221,7 @@ func loadStream(r Resource) (*Stream, error) {
 	return &s, nil
 }
 
-type Sound struct {
+type SFX struct {
 	source     uint32
 	buffer     uint32
 	duration   time.Duration // seconds
@@ -192,7 +229,7 @@ type Sound struct {
 	looping    bool
 }
 
-func (s *Sound) bind() {
+func (s *SFX) bind() {
 	s.source = nextAvailableSource()
 	audioDevice.Sourcei(s.source, al.BUFFER, int32(s.buffer))
 	if s.looping {
@@ -202,24 +239,24 @@ func (s *Sound) bind() {
 	}
 }
 
-func (s *Sound) Play() {
+func (s *SFX) Play() {
 	s.looping = false
 	s.bind()
 	audioDevice.SourcePlay(s.source)
 }
 
-func (s *Sound) Loop() {
+func (s *SFX) Loop() {
 	s.looping = true
 	s.bind()
 	audioDevice.SourcePlay(s.source)
 }
 
-func (s *Sound) Stop() {
+func (s *SFX) Stop() {
 	audioDevice.SourceStop(s.source)
 	s.unqueue()
 }
 
-func (s *Sound) unqueue() []uint32 {
+func (s *SFX) unqueue() []uint32 {
 	var processed int32
 	audioDevice.GetSourcei(s.source, al.BUFFERS_PROCESSED, &processed)
 	if processed == 0 {
@@ -230,11 +267,11 @@ func (s *Sound) unqueue() []uint32 {
 	return available
 }
 
-func (s *Sound) Delete() {
+func (s *SFX) Delete() {
 	audioDevice.DeleteBuffers(1, &s.buffer)
 }
 
-func (s *Sound) Playing() bool {
+func (s *SFX) Playing() bool {
 	if s.source == 0 {
 		return false
 	}
@@ -244,38 +281,8 @@ func (s *Sound) Playing() bool {
 	return state == al.PLAYING
 }
 
-func (s *Sound) Duration() time.Duration {
+func (s *SFX) Duration() time.Duration {
 	return s.duration
-}
-
-func ToggleMute() {
-	muted = !muted
-	g := gain
-	if muted {
-		g = 0
-	}
-
-	for _, src := range audioSources {
-		audioDevice.Sourcef(src, al.GAIN, g)
-	}
-}
-
-func Muted() bool {
-	return muted
-}
-
-func SetGain(g float32) {
-	if g != gain {
-		gain = g
-
-		if muted {
-			return
-		}
-
-		for _, src := range audioSources {
-			audioDevice.Sourcef(src, al.GAIN, g)
-		}
-	}
 }
 
 func setupAudio() {
@@ -316,13 +323,13 @@ func nextAvailableSource() uint32 {
 	return source
 }
 
-func loadSound(r Resource) (*Sound, error) {
-	samples, config, duration, err := readSoundFile(r.url)
+func loadSFX(r Resource) (*SFX, error) {
+	samples, config, duration, err := readSFXFile(r.url)
 	if err != nil {
 		return nil, err
 	}
 
-	s := Sound{
+	s := SFX{
 		duration:   duration,
 		sampleRate: config.SampleRate,
 	}
@@ -335,7 +342,7 @@ func loadSound(r Resource) (*Sound, error) {
 	return &s, err
 }
 
-func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config, duration time.Duration, err error) {
+func readSFXFile(filename string) (samples []audio.PCM16, config audio.Config, duration time.Duration, err error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, audio.Config{}, 0, err
@@ -379,10 +386,10 @@ func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config,
 func cleanupAudio() {
 	audioCancel()
 	audioDevice.DeleteSources(int32(len(audioSources)), &audioSources[0])
-	for _, s := range Files.sounds {
+	for _, s := range Files.sfx {
 		s.Delete()
 	}
-	for _, s := range Files.streams {
+	for _, s := range Files.music {
 		s.Delete()
 	}
 	if audioDevice != nil {
@@ -395,3 +402,6 @@ func init() {
 		log.Println("[audio]", err)
 	})
 }
+
+var _ Sound = (*Music)(nil)
+var _ Sound = (*SFX)(nil)

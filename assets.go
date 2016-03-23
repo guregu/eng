@@ -25,8 +25,8 @@ type Loader struct {
 	loaded    map[Resource]struct{}
 	images    map[string]*Texture
 	jsons     map[string]string
-	sounds    map[string]*Sound
-	streams   map[string]*Stream
+	sfx       map[string]*SFX
+	music     map[string]*Music
 }
 
 func NewLoader() *Loader {
@@ -35,8 +35,8 @@ func NewLoader() *Loader {
 		loaded:    make(map[Resource]struct{}),
 		images:    make(map[string]*Texture),
 		jsons:     make(map[string]string),
-		sounds:    make(map[string]*Sound),
-		streams:   make(map[string]*Stream),
+		sfx:       make(map[string]*SFX),
+		music:     make(map[string]*Music),
 	}
 }
 
@@ -66,12 +66,19 @@ func (l *Loader) Json(name string) string {
 	return l.jsons[name]
 }
 
-func (l *Loader) Sound(name string) *Sound {
-	return l.sounds[name]
+func (l *Loader) Sound(name string) Sound {
+	if sfx, ok := l.sfx[name]; ok {
+		return sfx
+	}
+	return l.music[name]
 }
 
-func (l *Loader) Stream(name string) *Stream {
-	return l.streams[name]
+func (l *Loader) SFX(name string) *SFX {
+	return l.sfx[name]
+}
+
+func (l *Loader) Music(name string) *Music {
+	return l.music[name]
 }
 
 func (l *Loader) Load(onFinish func()) {
@@ -91,15 +98,15 @@ func (l *Loader) Load(onFinish func()) {
 			fatalErr(err)
 			l.jsons[r.name] = data
 			l.loaded[r] = struct{}{}
-		case "wav", "flac":
-			data, err := loadSound(r)
+		case "wav", "flac-sfx":
+			data, err := loadSFX(r)
 			fatalErr(err)
-			l.sounds[r.name] = data
+			l.sfx[r.name] = data
 			l.loaded[r] = struct{}{}
-		case "flac-s":
-			data, err := loadStream(r)
+		case "flac":
+			data, err := loadMusic(r)
 			fatalErr(err)
-			l.streams[r.name] = data
+			l.music[r.name] = data
 			l.loaded[r] = struct{}{}
 		}
 	}
