@@ -8,6 +8,7 @@ import (
 
 	"azul3d.org/audio.v1"
 	"azul3d.org/native/al.v1"
+	"golang.org/x/net/context"
 
 	_ "azul3d.org/audio/flac.dev"
 	_ "azul3d.org/audio/wav.v1"
@@ -16,6 +17,8 @@ import (
 var (
 	audioDevice  *al.Device
 	audioSources []uint32
+	audioContext context.Context
+	audioCancel  func()
 	muted        bool
 	gain         float32
 )
@@ -29,7 +32,8 @@ type Stream struct {
 	source  uint32
 	buffers []uint32
 	looping bool
-	done    chan struct{}
+	context context.Context
+	cancel  func()
 
 	decoder audio.Decoder
 	file    *os.File
@@ -46,7 +50,7 @@ func (s *Stream) Loop() {
 }
 
 func (s *Stream) play() {
-	s.done = make(chan struct{})
+	s.context, s.cancel = context.WithCancel(audioContext)
 	s.source = nextAvailableSource()
 	s.reset()
 	audioDevice.Sourcei(s.source, al.LOOPING, al.FALSE)
@@ -72,12 +76,9 @@ func (s *Stream) reset() {
 }
 
 func (s *Stream) run() {
-	defer func() {
-		s.done = nil
-	}()
 	for {
 		select {
-		case <-s.done:
+		case <-s.context.Done():
 			return
 		default:
 			processed := s.unqueue()
@@ -141,11 +142,10 @@ func (s *Stream) fill(buffer uint32) error {
 }
 
 func (s *Stream) Delete() {
-	if s.done != nil {
-		close(s.done)
+	if s.cancel != nil {
+		s.cancel()
 	}
 	s.file.Close()
-
 	audioDevice.DeleteBuffers(buffersPerStream, &s.buffers[0])
 }
 
@@ -159,8 +159,8 @@ func (s *Stream) Playing() bool {
 }
 
 func (s *Stream) Stop() {
-	if s.done != nil {
-		close(s.done)
+	if s.cancel != nil {
+		s.cancel()
 	}
 	audioDevice.SourceStop(s.source)
 	s.unqueue()
@@ -235,6 +235,10 @@ func (s *Sound) Delete() {
 }
 
 func (s *Sound) Playing() bool {
+	if s.source == 0 {
+		return false
+	}
+
 	var state int32
 	audioDevice.GetSourcei(s.source, al.SOURCE_STATE, &state)
 	return state == al.PLAYING
@@ -281,6 +285,8 @@ func setupAudio() {
 
 	audioSources = make([]uint32, audioSourcesCount)
 	audioDevice.GenSources(audioSourcesCount, &audioSources[0])
+
+	audioContext, audioCancel = context.WithCancel(context.Background())
 }
 
 func nextAvailableSource() uint32 {
@@ -371,17 +377,12 @@ func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config,
 }
 
 func cleanupAudio() {
+	audioCancel()
 	audioDevice.DeleteSources(int32(len(audioSources)), &audioSources[0])
 	for _, s := range Files.sounds {
-		if s.Playing() {
-			s.Stop()
-		}
 		s.Delete()
 	}
 	for _, s := range Files.streams {
-		if s.Playing() {
-			s.Stop()
-		}
 		s.Delete()
 	}
 	if audioDevice != nil {
