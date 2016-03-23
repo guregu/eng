@@ -22,7 +22,7 @@ engi (演技) is a multi-platform 2D game library for Go, forked from [ENGi v0.6
 
 `SFX` are loaded entirely in to memory, designed for sound effects. Files ending with `.flac-sfx`, and `.wav` will be loaded as Sounds.
 
-`Streams` are streamed, designed for background music. Files ending with `.flac`. 
+`Music` are streamed, designed for background music. Files ending with `.flac`. 
 
 The `Sound` interface abstracts around both of these. This system is pretty dumb/hacky so I may fix it eventually. 
 
