@@ -46,17 +46,24 @@ func run(title string, width, height int, fullscreen bool) {
 	// ideally we want a "windowless full screen"
 	// but using normal full screen and disabling minimizing on OS X (which is broken)
 	// is the best we can do for now...
+
 	if fullscreen {
-		if runtime.GOOS == "darwin" {
-			glfw.WindowHint(glfw.AutoIconify, glfw.False)
-		}
+		// if runtime.GOOS == "darwin" {
+		// 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
+		// }
 		glfw.WindowHint(glfw.Decorated, glfw.False)
+		width, height = mode.Width, mode.Height
 	} else {
 		monitor = nil
 	}
 
 	glfw.WindowHint(glfw.ContextVersionMajor, 2)
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
+
+	glfw.WindowHint(glfw.RedBits, mode.RedBits)
+	glfw.WindowHint(glfw.GreenBits, mode.GreenBits)
+	glfw.WindowHint(glfw.BlueBits, mode.BlueBits)
+	glfw.WindowHint(glfw.RefreshRate, mode.RefreshRate)
 
 	var err error
 	window, err = glfw.CreateWindow(width, height, title, monitor, nil)
