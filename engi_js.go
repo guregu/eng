@@ -12,7 +12,7 @@ import (
 	"math/rand"
 	"strconv"
 
-	"github.com/ajhager/webgl"
+	"github.com/EngoEngine/webgl"
 	"github.com/gopherjs/gopherjs/js"
 )
 
@@ -172,7 +172,7 @@ func rafPolyfill() {
 	window := js.Global
 	vendors := []string{"ms", "moz", "webkit", "o"}
 	if window.Get("requestAnimationFrame") == nil {
-		for i := 0; i < len(vendors) && window.Get("requestAnimationFrame") == nil ; i++ {
+		for i := 0; i < len(vendors) && window.Get("requestAnimationFrame") == nil; i++ {
 			vendor := vendors[i]
 			window.Set("requestAnimationFrame", window.Get(vendor+"RequestAnimationFrame"))
 			window.Set("cancelAnimationFrame", window.Get(vendor+"CancelAnimationFrame"))
