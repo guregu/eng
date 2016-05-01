@@ -17,7 +17,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/EngoEngine/webgl"
+	"engo.io/webgl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/kardianos/osext"
 )

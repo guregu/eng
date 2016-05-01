@@ -4,7 +4,7 @@
 
 package engi
 
-import "github.com/EngoEngine/webgl"
+import "engo.io/webgl"
 
 var (
 	responder Responder
