@@ -17,8 +17,8 @@ import (
 	"runtime"
 	"time"
 
-	"engo.io/webgl"
 	"github.com/go-gl/glfw/v3.1/glfw"
+	webgl "github.com/guregu/gl"
 	"github.com/kardianos/osext"
 )
 
@@ -35,6 +35,21 @@ func fatalErr(err error) {
 	}
 }
 
+var (
+	virtualWidth   float32
+	virtualHeight  float32
+	originalWidth  float32
+	originalHeight float32
+
+	globalScaleX float32 = 1
+	globalScaleY float32 = 1
+
+	globalOffsetX float32
+	globalOffsetY float32
+
+	viewportX, viewportY, viewportW, viewportH int
+)
+
 func run(title string, width, height int, fullscreen bool) {
 	defer runtime.UnlockOSThread()
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -43,15 +58,26 @@ func run(title string, width, height int, fullscreen bool) {
 	monitor := glfw.GetPrimaryMonitor()
 	mode := monitor.GetVideoMode()
 
+	originalWidth, originalHeight = float32(width), float32(height)
+	virtualWidth, virtualHeight = float32(width), float32(height)
+	ratio := float32(width) / float32(height)
+
+	// actualRatio := float32(mode.Width) / float32(mode.Height)
+
 	// ideally we want a "windowless full screen"
 	// but using normal full screen and disabling minimizing on OS X (which is broken)
 	// is the best we can do for now...
 
 	if fullscreen {
-		// if runtime.GOOS == "darwin" {
-		// 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
-		// }
 		glfw.WindowHint(glfw.Decorated, glfw.False)
+		// TODO: FIX ME = shit
+		widthToUse := min(float32(mode.Width), float32(mode.Height)*ratio)
+		heightToUse := min(float32(mode.Height), float32(mode.Width)/ratio)
+		globalOffsetX = (float32(mode.Width) - widthToUse) / 2
+		globalOffsetY = (float32(mode.Height) - heightToUse) / 2
+		globalScaleX, globalScaleY = widthToUse/virtualWidth, heightToUse/virtualHeight
+		virtualWidth, virtualHeight = widthToUse, heightToUse
+		log.Println("VIRT", virtualWidth, virtualHeight, "REAL", width, height, "SCALE", globalScaleX, globalScaleY)
 		width, height = mode.Width, mode.Height
 	} else {
 		monitor = nil
@@ -70,6 +96,12 @@ func run(title string, width, height int, fullscreen bool) {
 	fatalErr(err)
 	window.MakeContextCurrent()
 
+	// calc scale
+	actualWidthi, actualHeighti := window.GetFramebufferSize()
+	actualWidth, actualHeight := float32(actualWidthi), float32(actualHeighti)
+	pixelScaleX := float32(actualWidth / float32(mode.Width))
+	pixelScaleY := float32(actualHeight / float32(mode.Height))
+	log.Println("SCALE", globalScaleX, globalScaleY, "ACT", actualWidth, actualHeight, "VIRT", virtualWidth, virtualHeight)
 	if !fullscreen {
 		window.SetPos((mode.Width-width)/2, (mode.Height-height)/2)
 	}
@@ -80,10 +112,31 @@ func run(title string, width, height int, fullscreen bool) {
 
 	gl = webgl.NewContext()
 
-	gl.Viewport(0, 0, width, height)
+	clearScreen := func() {
+		gl.Viewport(0, 0, width, height)
+		gl.ClearColor(0, 0, 0, 1)
+		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	}
+
+	resetViewport := func() {
+		clearScreen()
+		if globalScaleX != 1 || globalScaleY != 1 {
+			x, y := int(globalOffsetX*pixelScaleX), 0
+			w, h := int(virtualWidth*pixelScaleX), int(virtualHeight*pixelScaleY)
+			gl.Viewport(x, y, w, h)
+			gl.Scissor(x, y, w, h)
+			gl.Enable(gl.SCISSOR_TEST)
+			viewportX, viewportY, viewportW, viewportH = x, y, w, h
+		} else {
+			viewportX, viewportY, viewportW, viewportH = 0, 0, width, height
+		}
+	}
+
+	resetViewport()
+
 	window.SetFramebufferSizeCallback(func(window *glfw.Window, w, h int) {
 		width, height = window.GetFramebufferSize()
-		gl.Viewport(0, 0, width, height)
+		resetViewport()
 		responder.Resize(w, h)
 	})
 
@@ -125,7 +178,20 @@ func run(title string, width, height int, fullscreen bool) {
 	shouldClose := window.ShouldClose()
 	for !shouldClose {
 		responder.Update(Time.Delta())
+
+		if fullscreen {
+			// clear outside
+			gl.Disable(gl.SCISSOR_TEST)
+			gl.ClearColor(0, 0, 0, 1)
+			gl.Clear(gl.COLOR_BUFFER_BIT)
+
+			// clear inside
+			gl.Enable(gl.SCISSOR_TEST)
+			gl.ClearColor(bgColor[0], bgColor[1], bgColor[2], 1)
+		}
+
 		gl.Clear(gl.COLOR_BUFFER_BIT)
+
 		responder.Render()
 		window.SwapBuffers()
 		glfw.PollEvents()
@@ -139,11 +205,19 @@ func run(title string, width, height int, fullscreen bool) {
 }
 
 func width() float32 {
+	return originalWidth
+}
+
+func height() float32 {
+	return originalHeight
+}
+
+func RealWidth() float32 {
 	width, _ := window.GetSize()
 	return float32(width)
 }
 
-func height() float32 {
+func RealHeight() float32 {
 	_, height := window.GetSize()
 	return float32(height)
 }
@@ -421,4 +495,11 @@ func DumpJoysticks() {
 			time.Sleep(1 * time.Second)
 		}
 	}()
+}
+
+func min(a, b float32) float32 {
+	if a > b {
+		return b
+	}
+	return a
 }

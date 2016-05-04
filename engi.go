@@ -4,13 +4,15 @@
 
 package engi
 
-import "engo.io/webgl"
+import webgl "github.com/guregu/gl"
 
 var (
 	responder Responder
 	Time      *Clock
 	Files     *Loader
 	gl        *webgl.Context
+
+	bgColor [3]float32
 )
 
 func Open(title string, width, height int, fullscreen bool, r Responder) {
@@ -25,6 +27,7 @@ func SetBg(color uint32) {
 	g := float32((color>>8)&0xFF) / 255.0
 	b := float32(color&0xFF) / 255.0
 	gl.ClearColor(r, g, b, 1.0)
+	bgColor = [3]float32{r, g, b}
 }
 
 func Width() float32 {

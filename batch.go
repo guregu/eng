@@ -8,7 +8,7 @@ import (
 	"log"
 	"math"
 
-	"engo.io/webgl"
+	webgl "github.com/guregu/gl"
 )
 
 const size = 10000
@@ -155,6 +155,13 @@ func (b *Batch) Draw(r Drawable, x, y, originX, originY, scaleX, scaleY, rotatio
 		fx2 *= scaleX
 		fy2 *= scaleY
 	}
+
+	// if globalScaleX != 1 || globalScaleY != 1 {
+	// 	fx *= globalScaleX
+	// 	fy *= globalScaleY
+	// 	fx2 *= globalScaleX
+	// 	fy2 *= globalScaleY
+	// }
 
 	p1x := fx
 	p1y := fy

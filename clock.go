@@ -7,9 +7,12 @@ package engi
 import (
 	"math"
 	"time"
+
+	// azclock "github.com/azul3d/engine/gfx/clock"
 )
 
 type Clock struct {
+	// *azclock.Clock
 	elapsed float64
 	delta   float64
 	fps     float64
@@ -23,9 +26,17 @@ func NewClock() *Clock {
 	clock.start = time.Now()
 	clock.Tick()
 	return clock
+
+	// clock := new(Clock)
+	// clock.Clock = azclock.New()
+	// // clock.SetMaxFrameRate(75)
+	// clock.Tick()
+	// return clock
 }
 
 func (c *Clock) Tick() {
+	// c.Clock.Tick()
+
 	now := time.Now()
 	c.frames += 1
 	c.delta = now.Sub(c.frame).Seconds()
@@ -40,13 +51,16 @@ func (c *Clock) Tick() {
 }
 
 func (c *Clock) Delta() float32 {
+	// return float32(c.Clock.Dt())
 	return float32(c.delta)
 }
 
 func (c *Clock) Fps() float32 {
+	// return float32(c.Clock.FrameRate())
 	return float32(c.fps)
 }
 
 func (c *Clock) Time() float32 {
+	// return float32(c.Clock.Time().Seconds())
 	return float32(time.Now().Sub(c.start).Seconds())
 }
