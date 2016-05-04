@@ -52,7 +52,7 @@ func run(title string, width, height int, fullscreen bool) {
 		// 	glfw.WindowHint(glfw.AutoIconify, glfw.False)
 		// }
 		glfw.WindowHint(glfw.Decorated, glfw.False)
-		width, height = mode.Width, mode.Height
+		//width, height = mode.Width, mode.Height
 	} else {
 		monitor = nil
 	}
