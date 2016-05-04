@@ -81,9 +81,12 @@ func run(title string, width, height int, fullscreen bool) {
 	gl = webgl.NewContext()
 
 	gl.Viewport(0, 0, width, height)
+
 	window.SetFramebufferSizeCallback(func(window *glfw.Window, w, h int) {
+		log.Println("RESIZE", width, height, "=>", w, h)
 		width, height = window.GetFramebufferSize()
-		gl.Viewport(0, 0, width, height)
+		log.Println("BUFSIZE", width, height)
+		gl.Viewport(0, h, w, h)
 		responder.Resize(w, h)
 	})
 
