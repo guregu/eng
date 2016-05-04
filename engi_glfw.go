@@ -84,9 +84,15 @@ func run(title string, width, height int, fullscreen bool) {
 
 	window.SetFramebufferSizeCallback(func(window *glfw.Window, w, h int) {
 		log.Println("RESIZE", width, height, "=>", w, h)
+		oldWidth, oldHeight := width, height
 		width, height = window.GetFramebufferSize()
 		log.Println("BUFSIZE", width, height)
-		gl.Viewport(0, h, w, h)
+		if oldWidth == 0 && oldHeight == 0 {
+			gl.Viewport(0, 0, w, h)
+		} else {
+			// this fixes Intel drivers on OS X, idk why
+			gl.Viewport(0, h, w, h)
+		}
 		responder.Resize(w, h)
 	})
 
