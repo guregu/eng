@@ -10,8 +10,8 @@ import (
 	"azul3d.org/native/al.v1"
 	"golang.org/x/net/context"
 
-	_ "azul3d.org/audio/flac.dev"
 	_ "azul3d.org/audio/wav.v1"
+	_ "github.com/guregu/audio-flac"
 )
 
 var (
