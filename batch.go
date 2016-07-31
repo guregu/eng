@@ -8,7 +8,7 @@ import (
 	"log"
 	"math"
 
-	"engo.io/webgl"
+	webgl "engo.io/gl"
 )
 
 const size = 10000

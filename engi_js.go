@@ -12,7 +12,7 @@ import (
 	"math/rand"
 	"strconv"
 
-	"engo.io/webgl"
+	webgl "engo.io/gl"
 	"github.com/gopherjs/gopherjs/js"
 )
 

@@ -10,7 +10,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"engo.io/webgl"
+	webgl "engo.io/gl"
 )
 
 type Resource struct {
