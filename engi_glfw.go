@@ -81,9 +81,16 @@ func run(title string, width, height int, fullscreen bool) {
 	gl = webgl.NewContext()
 
 	gl.Viewport(0, 0, width, height)
+
 	window.SetFramebufferSizeCallback(func(window *glfw.Window, w, h int) {
+		oldWidth, oldHeight := width, height
 		width, height = window.GetFramebufferSize()
-		gl.Viewport(0, 0, width, height)
+		if runtime.GOOS == "darwin" && oldWidth/2 == w && oldHeight/2 == h {
+			// I have no idea why, but this fixes fullscreen on OS X w/ retina
+			gl.Viewport(0, h, w, h)
+		} else {
+			gl.Viewport(0, 0, w, h)
+		}
 		responder.Resize(w, h)
 	})
 
