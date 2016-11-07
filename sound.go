@@ -7,7 +7,7 @@ import (
 	"unsafe"
 
 	"azul3d.org/audio.v1"
-	"azul3d.org/native/al.v1"
+	"github.com/guregu/native-al"
 	"golang.org/x/net/context"
 
 	_ "azul3d.org/audio/wav.v1"
