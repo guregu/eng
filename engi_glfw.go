@@ -35,6 +35,8 @@ func fatalErr(err error) {
 	}
 }
 
+var OnClose func()
+
 func run(title string, width, height int, fullscreen bool) {
 	defer runtime.UnlockOSThread()
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -71,7 +73,11 @@ func run(title string, width, height int, fullscreen bool) {
 	window.MakeContextCurrent()
 
 	if !fullscreen {
-		window.SetPos((mode.Width-width)/2, (mode.Height-height)/2)
+		x, y := (mode.Width-width)/2, (mode.Height-height)/2
+		if runtime.GOOS == "darwin" {
+			y = 0
+		}
+		window.SetPos(x, y)
 	}
 
 	width, height = window.GetFramebufferSize()
@@ -143,6 +149,9 @@ func run(title string, width, height int, fullscreen bool) {
 	window.Destroy()
 	glfw.Terminate()
 	responder.Close()
+	if OnClose != nil {
+		OnClose()
+	}
 }
 
 func width() float32 {
