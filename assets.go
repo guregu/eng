@@ -5,12 +5,15 @@
 package engi
 
 import (
+	"image"
 	"io"
-	"math"
+	// "math"
 	"path"
 	"path/filepath"
 
-	webgl "engo.io/gl"
+	"github.com/hajimehoshi/ebiten/v2"
+	// "github.com/davecgh/go-spew/spew"
+	// webgl "engo.io/gl"
 )
 
 type Resource struct {
@@ -93,6 +96,7 @@ func (l *Loader) Load(onFinish func()) {
 			fatalErr(err)
 			l.images[r.name] = NewTexture(data)
 			l.loaded[r] = struct{}{}
+			// spew.Dump(data, err)
 		case "json":
 			data, err := loadJson(r)
 			fatalErr(err)
@@ -119,85 +123,101 @@ type Image interface {
 	Height() int
 }
 
-func LoadShader(vertSrc, fragSrc string) *webgl.Program {
-	vertShader := gl.CreateShader(gl.VERTEX_SHADER)
-	gl.ShaderSource(vertShader, vertSrc)
-	gl.CompileShader(vertShader)
-	defer gl.DeleteShader(vertShader)
+// func LoadShader(vertSrc, fragSrc string) *webgl.Program {
+// 	vertShader := gl.CreateShader(gl.VERTEX_SHADER)
+// 	gl.ShaderSource(vertShader, vertSrc)
+// 	gl.CompileShader(vertShader)
+// 	defer gl.DeleteShader(vertShader)
 
-	fragShader := gl.CreateShader(gl.FRAGMENT_SHADER)
-	gl.ShaderSource(fragShader, fragSrc)
-	gl.CompileShader(fragShader)
-	defer gl.DeleteShader(fragShader)
+// 	fragShader := gl.CreateShader(gl.FRAGMENT_SHADER)
+// 	gl.ShaderSource(fragShader, fragSrc)
+// 	gl.CompileShader(fragShader)
+// 	defer gl.DeleteShader(fragShader)
 
-	program := gl.CreateProgram()
-	gl.AttachShader(program, vertShader)
-	gl.AttachShader(program, fragShader)
-	gl.LinkProgram(program)
+// 	program := gl.CreateProgram()
+// 	gl.AttachShader(program, vertShader)
+// 	gl.AttachShader(program, fragShader)
+// 	gl.LinkProgram(program)
 
-	return program
-}
+// 	return program
+// }
 
 type Region struct {
-	texture       *Texture
-	u, v          float32
-	u2, v2        float32
-	width, height float32
+	texture *Texture
+	img     *ebiten.Image
+	// u, v          float32
+	// u2, v2        float32
+	// width, height float32
+	x, y int
+	w, h int
 }
 
 func NewRegion(texture *Texture, x, y, w, h int) *Region {
-	invTexWidth := 1.0 / float32(texture.Width())
-	invTexHeight := 1.0 / float32(texture.Height())
+	// TODO
+	sub := texture.img.SubImage(image.Rect(x, y, x+w, y+h))
+	// img := ebiten.NewImageFromImage(sub)
+	return &Region{
+		// texture: texture,
+		// img:     img,
+		img: sub.(*ebiten.Image),
+		x:   x,
+		y:   y,
+		w:   w,
+		h:   h,
+	}
+	// invTexWidth := 1.0 / float32(texture.Width())
+	// invTexHeight := 1.0 / float32(texture.Height())
 
-	u := float32(x) * invTexWidth
-	v := float32(y) * invTexHeight
-	u2 := float32(x+w) * invTexWidth
-	v2 := float32(y+h) * invTexHeight
-	width := float32(math.Abs(float64(w)))
-	height := float32(math.Abs(float64(h)))
+	// u := float32(x) * invTexWidth
+	// v := float32(y) * invTexHeight
+	// u2 := float32(x+w) * invTexWidth
+	// v2 := float32(y+h) * invTexHeight
+	// width := float32(math.Abs(float64(w)))
+	// height := float32(math.Abs(float64(h)))
 
-	return &Region{texture, u, v, u2, v2, width, height}
+	// return &Region{texture, u, v, u2, v2, width, height}
 }
 
 func (r *Region) Width() float32 {
-	return float32(r.width)
+	return float32(r.w)
 }
 
 func (r *Region) Height() float32 {
-	return float32(r.height)
+	return float32(r.h)
 }
 
-func (r *Region) Texture() *webgl.Texture {
-	return r.texture.id
+func (r *Region) Texture() *ebiten.Image {
+	return r.img
 }
 
 func (r *Region) View() (float32, float32, float32, float32) {
-	return r.u, r.v, r.u2, r.v2
+	// return r.u, r.v, r.u2, r.v2
+	return 0.0, 0.0, 1.0, 1.0
 }
 
 type Texture struct {
-	id     *webgl.Texture
+	img    *ebiten.Image
 	width  int
 	height int
 }
 
 func NewTexture(img Image) *Texture {
-	id := gl.CreateTexture()
+	// id := gl.CreateTexture()
 
-	gl.BindTexture(gl.TEXTURE_2D, id)
+	// gl.BindTexture(gl.TEXTURE_2D, id)
 
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-	if img.Data() == nil {
-		panic("Texture image data is nil.")
-	}
+	// if img.Data() == nil {
+	// 	panic("Texture image data is nil.")
+	// }
 
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img.Data())
-
-	return &Texture{id, img.Width(), img.Height()}
+	// gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img.Data())
+	tex := ebiten.NewImageFromImage(img.Data().(*image.NRGBA))
+	return &Texture{tex, img.Width(), img.Height()}
 }
 
 // Width returns the width of the texture.
@@ -210,8 +230,8 @@ func (t *Texture) Height() float32 {
 	return float32(t.height)
 }
 
-func (t *Texture) Texture() *webgl.Texture {
-	return t.id
+func (t *Texture) Texture() *ebiten.Image {
+	return t.img
 }
 
 func (r *Texture) View() (float32, float32, float32, float32) {

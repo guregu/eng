@@ -5,8 +5,10 @@
 package engi
 
 import (
-	"math"
+	// "math"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Clock struct {
@@ -21,32 +23,33 @@ type Clock struct {
 func NewClock() *Clock {
 	clock := new(Clock)
 	clock.start = time.Now()
-	clock.Tick()
+	// clock.Tick()
 	return clock
 }
 
 func (c *Clock) Tick() {
-	now := time.Now()
-	c.frames += 1
-	c.delta = now.Sub(c.frame).Seconds()
-	c.elapsed += c.delta
-	c.frame = now
+	// now := time.Now()
+	// c.frames += 1
+	// c.delta = now.Sub(c.frame).Seconds()
+	// c.elapsed += c.delta
+	// c.frame = now
 
-	if c.elapsed >= 1 {
-		c.fps = float64(c.frames)
-		c.elapsed = math.Mod(c.elapsed, 1)
-		c.frames = 0
-	}
+	// if c.elapsed >= 1 {
+	// 	c.fps = float64(c.frames)
+	// 	c.elapsed = math.Mod(c.elapsed, 1)
+	// 	c.frames = 0
+	// }
 }
 
 func (c *Clock) Delta() float32 {
-	return float32(c.delta)
+	return 0
 }
 
 func (c *Clock) Fps() float32 {
-	return float32(c.fps)
+	return float32(ebiten.CurrentTPS())
+	// return float32(c.fps)
 }
 
 func (c *Clock) Time() float32 {
-	return float32(time.Now().Sub(c.start).Seconds())
+	return 0
 }
