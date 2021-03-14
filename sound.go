@@ -3,7 +3,12 @@ package engi
 import (
 	// "log"
 	// "os"
+	"bytes"
 	"context"
+	// "io"
+	// "encoding/binary"
+	"io"
+	"math"
 	"time"
 	// "unsafe"
 	// "azul3d.org/audio.v1"
@@ -11,7 +16,12 @@ import (
 	// "golang.org/x/net/context"
 	// _ "azul3d.org/audio/wav.v1"
 	// _ "github.com/guregu/audio-flac"
-	// "github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/audio/wav"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/mewkiz/flac"
+
+	"log"
 )
 
 var (
@@ -20,7 +30,7 @@ var (
 	audioContext context.Context
 	audioCancel  func()
 	muted        bool
-	gain         float32
+	gain         float64
 )
 
 const (
@@ -30,6 +40,7 @@ const (
 
 type Sound interface {
 	Play()
+	PlayAt(mult float64)
 	Loop()
 	Stop()
 	Playing() bool
@@ -52,7 +63,7 @@ func Muted() bool {
 	return muted
 }
 
-func SetGain(g float32) {
+func SetGain(g float64) {
 	if g != gain {
 		gain = g
 
@@ -67,6 +78,8 @@ func SetGain(g float32) {
 }
 
 type Music struct {
+	player  *audio.Player
+	src     io.ReadSeekCloser
 	source  uint32
 	buffers []uint32
 	looping bool
@@ -78,11 +91,25 @@ type Music struct {
 }
 
 func (s *Music) Play() {
+	if s == nil {
+		return
+	}
+	s.player.SetVolume(gain)
+	s.player.Play()
 	// s.looping = false
 	// s.play()
 }
 
+func (s *Music) PlayAt(mult float64) {
+	s.Play()
+}
+
 func (s *Music) Loop() {
+	if s == nil {
+		return
+	}
+	s.player.SetVolume(gain)
+	s.player.Play()
 	// s.looping = true
 	// s.play()
 }
@@ -111,38 +138,6 @@ func (s *Music) reset() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-}
-
-func (s *Music) run() {
-	for {
-		select {
-		case <-s.context.Done():
-			return
-			// default:
-			// 	processed := s.unqueue()
-			// 	if len(processed) == 0 {
-			// 		continue
-			// 	}
-
-			// 	for _, buf := range processed {
-			// 		err := s.fill(buf)
-			// 		switch {
-			// 		case err == audio.EOS:
-			// 			if s.looping {
-			// 				// time.Sleep(500 * time.Millisecond)
-			// 				// start over
-			// 				s.reset()
-			// 			}
-			// 		case err != nil:
-			// 			panic(err)
-			// 		}
-			// 		audioDevice.SourceQueueBuffers(s.source, []uint32{buf})
-			// 		if err == audio.EOS && !s.looping {
-			// 			return
-			// 		}
-			// 	}
-		}
-	}
 }
 
 func (s *Music) unqueue() []uint32 {
@@ -181,6 +176,10 @@ func (s *Music) unqueue() []uint32 {
 // }
 
 func (s *Music) Delete() {
+	if s == nil {
+		return
+	}
+	s.player.Close()
 	// if s.cancel != nil {
 	// 	s.cancel()
 	// }
@@ -189,16 +188,10 @@ func (s *Music) Delete() {
 }
 
 func (s *Music) Playing() bool {
-	if s == nil {
+	if s == nil || s.player == nil {
 		return false
 	}
-	if s.source == 0 {
-		return false
-	}
-	return true
-	// var state int32
-	// audioDevice.GetSourcei(s.source, al.SOURCE_STATE, &state)
-	// return state == al.PLAYING
+	return s.player.IsPlaying()
 }
 
 func (s *Music) Stop() {
@@ -213,8 +206,101 @@ func (s *Music) Stop() {
 	s.source = 0
 }
 
+type flacStream struct {
+	stream *flac.Stream
+}
+
+func (fs *flacStream) Read(b []byte) (n int, err error) {
+	// defer func() {
+	b = b[:n]
+	// }()
+	// b = b[:0]
+
+more:
+	// frame, err := fs.stream.ParseNext()
+	// if err != nil {
+	// 	if err == io.EOF {
+	// 		return n, io.EOF // TODO
+	// 	}
+	// 	return n, err
+	// }
+	// out := bytes.NewBuffer(b)
+	_ = bytes.Compare
+	// var frames int
+	// println(fs.stream.)
+	// log.Printf("%+v\n", fs.stream.Info)
+	// for i := 0; i < frame.Subframes[0].NSamples; i++ {
+	// 	for x, subframe := range frame.Subframes {
+	// 		if x > 1 {
+	// 			// continue
+	// 		}
+	// 		samp := uint32(subframe.Samples[i])
+	// 		const max = 32767
+	// 		q := int16(samp)
+	_ = math.Pi
+	_ = log.Println
+	// 		// q := int16(math.Sin(2*math.Pi*float64(samp)/2) * 0.3 * max)
+	// 		b[n] = byte(q)
+	// 		n++
+	// 		b[n] = byte(q >> 8)
+	// 		n++
+
+	// 		// for j := uint32(2); j < 4; j++ {
+	// 		// 	f := byte((samp >> (8 * j)) & 0xff)
+
+	// 		// }
+	// 		if n == len(b) {
+	// 			return n, nil
+	// 		}
+	// 		// data = append(data, int(subframe.Samples[i]))
+	// 	}
+	// }
+
+	// out:
+	// 	for x := 0; n+4 < len(b); x++ {
+	// 		for _, sub := range frame.Subframes {
+	// 			if frames > len(sub.Samples) {
+	// 				break out
+	// 			}
+	// 			// sub.
+	// 			samp := sub.Samples[frames]
+	// 			frames++
+
+	// 			for i := uint32(0); i < 4; i++ {
+	// 				b[n] = byte((samp >> (8 * i)) & 0xff)
+	// 				n++
+	// 			}
+	// 		}
+	// 	}
+	if n+4 < len(b) {
+		goto more
+	}
+	return n, nil
+}
+
 func loadMusic(r Resource) (*Music, error) {
+	return nil, nil
+
+	f, err := ebitenutil.OpenFile(r.url)
+	if err != nil {
+		return nil, err
+	}
+	stream, err := flac.New(f)
+	if err != nil {
+		return nil, err
+	}
+	fs := &flacStream{
+		stream: stream,
+	}
+	p, err := audio.NewPlayer(acx, fs)
+	if err != nil {
+		return nil, err
+	}
+	return &Music{
+		player: p,
+	}, nil
 	// audio.
+	// wav.
 	return nil, nil
 	// func readSoundFile(filename string) (samples []audio.PCM16, config audio.Config, duration time.Duration, err error) {
 
@@ -235,6 +321,8 @@ func loadMusic(r Resource) (*Music, error) {
 }
 
 type SFX struct {
+	buf        []byte
+	player     *audio.Player
 	source     uint32
 	buffer     uint32
 	duration   time.Duration // seconds
@@ -253,9 +341,23 @@ type SFX struct {
 // }
 
 func (s *SFX) Play() {
-	// s.looping = false
-	// s.bind()
-	// audioDevice.SourcePlay(s.source)
+	s.play(gain)
+}
+
+func (s *SFX) PlayAt(gainMultiplier float64) {
+	gain := gain
+	gain *= gainMultiplier
+	s.play(gain)
+}
+
+func (s *SFX) play(gain float64) {
+	if s == nil {
+		return
+	}
+	player := audio.NewPlayerFromBytes(acx, s.buf)
+	player.SetVolume(gain)
+	player.Play()
+	s.player = player
 }
 
 func (s *SFX) Loop() {
@@ -265,95 +367,55 @@ func (s *SFX) Loop() {
 }
 
 func (s *SFX) Stop() {
-	// audioDevice.SourceStop(s.source)
-	// s.unqueue()
+	if s == nil {
+		return
+	}
+	if s.player != nil {
+		s.player.Close()
+		s.player = nil
+	}
 }
-
-// func (s *SFX) unqueue() []uint32 {
-// 	var processed int32
-// 	audioDevice.GetSourcei(s.source, al.BUFFERS_PROCESSED, &processed)
-// 	if processed == 0 {
-// 		return nil
-// 	}
-// 	available := make([]uint32, processed)
-// 	audioDevice.SourceUnqueueBuffers(s.source, available)
-// 	return available
-// }
 
 func (s *SFX) Delete() {
 	// audioDevice.DeleteBuffers(1, &s.buffer)
 }
 
 func (s *SFX) Playing() bool {
-	if s.source == 0 {
+	if s == nil {
 		return false
 	}
+	if s.player != nil {
+		return s.Playing()
+	}
 	return false
-	// var state int32
-	// audioDevice.GetSourcei(s.source, al.SOURCE_STATE, &state)
-	// return state == al.PLAYING
 }
 
 func (s *SFX) Duration() time.Duration {
+	if s == nil {
+		return 0
+	}
 	return s.duration
 }
 
-// func setupAudio() {
-// 	var err error
-// 	audioDevice, err = al.OpenDevice("", nil)
-// 	fatalErr(err)
+var acx = audio.NewContext(44100)
 
-// 	audioSources = make([]uint32, audioSourcesCount)
-// 	audioDevice.GenSources(audioSourcesCount, &audioSources[0])
-
-// 	audioContext, audioCancel = context.WithCancel(context.Background())
-// }
-
-// func nextAvailableSource() uint32 {
-// 	// find unused source
-// 	for _, source := range audioSources {
-// 		var state int32
-// 		audioDevice.GetSourcei(source, al.SOURCE_STATE, &state)
-// 		if state != al.PLAYING {
-// 			audioDevice.Sourcei(source, al.BUFFER, 0)
-// 			return source
-// 		}
-// 	}
-
-// 	// no free sounds. find non-looping one and cut it short
-// 	for _, source := range audioSources {
-// 		var looping int32
-// 		audioDevice.GetSourcei(source, al.LOOPING, &looping)
-// 		if looping != al.TRUE {
-// 			audioDevice.SourceStop(source)
-// 			return source
-// 		}
-// 	}
-
-// 	// give up, take the last one
-// 	source := audioSources[len(audioSources)-1]
-// 	audioDevice.SourceStop(source)
-// 	return source
-// }
-
-func loadSFX(r Resource) (*SFX, error) {
-	return nil, nil
-	// 	samples, config, duration, err := readSFXFile(r.url)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-
-	// 	s := SFX{
-	// 		duration:   duration,
-	// 		sampleRate: config.SampleRate,
-	// 	}
-	// 	audioDevice.GenBuffers(1, &s.buffer)
-	// 	if config.Channels == 1 {
-	// 		audioDevice.BufferData(s.buffer, al.FORMAT_MONO16, unsafe.Pointer(&samples[0]), int32(int(unsafe.Sizeof(samples[0]))*len(samples)), int32(config.SampleRate))
-	// 	} else {
-	// 		audioDevice.BufferData(s.buffer, al.FORMAT_STEREO16, unsafe.Pointer(&samples[0]), int32(int(unsafe.Sizeof(samples[0]))*len(samples)), int32(config.SampleRate))
-	// 	}
-	// 	return &s, err
+func loadSFX(res Resource) (*SFX, error) {
+	r, err := ebitenutil.OpenFile(res.url)
+	if err != nil {
+		return nil, err
+	}
+	x, err := wav.Decode(acx, r)
+	if err != nil {
+		return nil, err
+	}
+	x.Length()
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, x); err != nil {
+		return nil, err
+	}
+	return &SFX{
+		buf: buf.Bytes(),
+	}, nil
 }
 
 // func readSFXFile(filename string) (samples []audio.PCM16, config audio.Config, duration time.Duration, err error) {

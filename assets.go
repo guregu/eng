@@ -102,7 +102,7 @@ func (l *Loader) Load(onFinish func()) {
 			fatalErr(err)
 			l.jsons[r.name] = data
 			l.loaded[r] = struct{}{}
-		case "wav", "flac-sfx":
+		case "wav" /*, "flac-sfx"*/ :
 			data, err := loadSFX(r)
 			fatalErr(err)
 			l.sfx[r.name] = data
@@ -123,33 +123,11 @@ type Image interface {
 	Height() int
 }
 
-// func LoadShader(vertSrc, fragSrc string) *webgl.Program {
-// 	vertShader := gl.CreateShader(gl.VERTEX_SHADER)
-// 	gl.ShaderSource(vertShader, vertSrc)
-// 	gl.CompileShader(vertShader)
-// 	defer gl.DeleteShader(vertShader)
-
-// 	fragShader := gl.CreateShader(gl.FRAGMENT_SHADER)
-// 	gl.ShaderSource(fragShader, fragSrc)
-// 	gl.CompileShader(fragShader)
-// 	defer gl.DeleteShader(fragShader)
-
-// 	program := gl.CreateProgram()
-// 	gl.AttachShader(program, vertShader)
-// 	gl.AttachShader(program, fragShader)
-// 	gl.LinkProgram(program)
-
-// 	return program
-// }
-
 type Region struct {
 	texture *Texture
 	img     *ebiten.Image
-	// u, v          float32
-	// u2, v2        float32
-	// width, height float32
-	x, y int
-	w, h int
+	x, y    int
+	w, h    int
 }
 
 func NewRegion(texture *Texture, x, y, w, h int) *Region {
@@ -165,32 +143,21 @@ func NewRegion(texture *Texture, x, y, w, h int) *Region {
 		w:   w,
 		h:   h,
 	}
-	// invTexWidth := 1.0 / float32(texture.Width())
-	// invTexHeight := 1.0 / float32(texture.Height())
-
-	// u := float32(x) * invTexWidth
-	// v := float32(y) * invTexHeight
-	// u2 := float32(x+w) * invTexWidth
-	// v2 := float32(y+h) * invTexHeight
-	// width := float32(math.Abs(float64(w)))
-	// height := float32(math.Abs(float64(h)))
-
-	// return &Region{texture, u, v, u2, v2, width, height}
 }
 
-func (r *Region) Width() float32 {
-	return float32(r.w)
+func (r *Region) Width() float64 {
+	return float64(r.w)
 }
 
-func (r *Region) Height() float32 {
-	return float32(r.h)
+func (r *Region) Height() float64 {
+	return float64(r.h)
 }
 
 func (r *Region) Texture() *ebiten.Image {
 	return r.img
 }
 
-func (r *Region) View() (float32, float32, float32, float32) {
+func (r *Region) View() (float64, float64, float64, float64) {
 	// return r.u, r.v, r.u2, r.v2
 	return 0.0, 0.0, 1.0, 1.0
 }
@@ -202,52 +169,38 @@ type Texture struct {
 }
 
 func NewTexture(img Image) *Texture {
-	// id := gl.CreateTexture()
-
-	// gl.BindTexture(gl.TEXTURE_2D, id)
-
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	// gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-
-	// if img.Data() == nil {
-	// 	panic("Texture image data is nil.")
-	// }
-
-	// gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img.Data())
 	tex := ebiten.NewImageFromImage(img.Data().(*image.NRGBA))
 	return &Texture{tex, img.Width(), img.Height()}
 }
 
 // Width returns the width of the texture.
-func (t *Texture) Width() float32 {
-	return float32(t.width)
+func (t *Texture) Width() float64 {
+	return float64(t.width)
 }
 
 // Height returns the height of the texture.
-func (t *Texture) Height() float32 {
-	return float32(t.height)
+func (t *Texture) Height() float64 {
+	return float64(t.height)
 }
 
 func (t *Texture) Texture() *ebiten.Image {
 	return t.img
 }
 
-func (r *Texture) View() (float32, float32, float32, float32) {
+func (r *Texture) View() (float64, float64, float64, float64) {
 	return 0.0, 0.0, 1.0, 1.0
 }
 
 type Point struct {
-	X, Y float32
+	X, Y float64
 }
 
-func (p *Point) Set(x, y float32) {
+func (p *Point) Set(x, y float64) {
 	p.X = x
 	p.Y = y
 }
 
-func (p *Point) SetTo(v float32) {
+func (p *Point) SetTo(v float64) {
 	p.X = v
 	p.Y = v
 }
@@ -256,13 +209,13 @@ type Sprite struct {
 	Position *Point
 	Scale    *Point
 	Anchor   *Point
-	Rotation float32
+	Rotation float64
 	Color    uint32
-	Alpha    float32
+	Alpha    float64
 	Region   *Region
 }
 
-func NewSprite(region *Region, x, y float32) *Sprite {
+func NewSprite(region *Region, x, y float64) *Sprite {
 	return &Sprite{
 		Position: &Point{x, y},
 		Scale:    &Point{1, 1},
@@ -277,40 +230,3 @@ func NewSprite(region *Region, x, y float32) *Sprite {
 func (s *Sprite) Render(batch *Batch) {
 	batch.Draw(s.Region, s.Position.X, s.Position.Y, s.Anchor.X, s.Anchor.Y, s.Scale.X, s.Scale.Y, s.Rotation, s.Color, s.Alpha)
 }
-
-var batchVert = ` 
-attribute vec2 in_Position;
-attribute vec4 in_Color;
-attribute vec2 in_TexCoords;
-
-uniform vec2 uf_Projection;
-
-varying vec4 var_Color;
-varying vec2 var_TexCoords;
-
-const vec2 center = vec2(-1.0, 1.0);
-
-void main() {
-  var_Color = in_Color;
-  var_TexCoords = in_TexCoords;
-	gl_Position = vec4(in_Position.x / uf_Projection.x + center.x,
-										 in_Position.y / -uf_Projection.y + center.y,
-										 0.0, 1.0);
-}`
-
-var batchFrag = `
-#ifdef GL_ES
-#define LOWP lowp
-precision mediump float;
-#else
-#define LOWP
-#endif
-
-varying vec4 var_Color;
-varying vec2 var_TexCoords;
-
-uniform sampler2D uf_Texture;
-
-void main (void) {
-  gl_FragColor = var_Color * texture2D(uf_Texture, var_TexCoords);
-}`

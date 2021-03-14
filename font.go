@@ -6,9 +6,9 @@ package engi
 
 type glyph struct {
 	region   *Region
-	xoffset  float32
-	yoffset  float32
-	xadvance float32
+	xoffset  float64
+	yoffset  float64
+	xadvance float64
 }
 
 type Font struct {
@@ -21,7 +21,7 @@ func NewGridFont(texture *Texture, cellWidth, cellHeight int) *Font {
 
 	for y := 0; y < int(texture.Height())/cellHeight; y++ {
 		for x := 0; x < int(texture.Width())/cellWidth; x++ {
-			g := &glyph{xadvance: float32(cellWidth)}
+			g := &glyph{xadvance: float64(cellWidth)}
 			g.region = NewRegion(texture, x*cellWidth, y*cellHeight, cellWidth, cellHeight)
 			glyphs[rune(i)] = g
 			i += 1
@@ -43,13 +43,13 @@ func (f *Font) Remap(mapping string) {
 	f.glyphs = glyphs
 }
 
-func (f *Font) Put(batch *Batch, r rune, x, y float32, color uint32) {
+func (f *Font) Put(batch *Batch, r rune, x, y float64, color uint32) {
 	if g, ok := f.glyphs[r]; ok {
 		batch.Draw(g.region, x+g.xoffset, y+g.yoffset, 0, 0, 1, 1, 0, color, 1)
 	}
 }
 
-func (f *Font) Print(batch *Batch, text string, x, y float32, color uint32) {
+func (f *Font) Print(batch *Batch, text string, x, y float64, color uint32) {
 	xx := x
 	for _, r := range text {
 		if g, ok := f.glyphs[r]; ok {

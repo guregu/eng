@@ -40,14 +40,14 @@ func SetBg(c uint32) {
 	bgColor = color.RGBA{r, g, b, 255}
 }
 
-func Width() float32 {
+func Width() float64 {
 	w, _ := ebiten.WindowSize()
-	return float32(w)
+	return float64(w)
 }
 
-func Height() float32 {
+func Height() float64 {
 	_, h := ebiten.WindowSize()
-	return float32(h)
+	return float64(h)
 }
 
 func Exit() {
@@ -71,14 +71,14 @@ type ebitenGame struct {
 func (g *ebitenGame) Update() error {
 	cx, cy := ebiten.CursorPosition()
 	if g.cursorX != cx || g.cursorY != cy {
-		g.r.Mouse(float32(cx), float32(cy), MOVE)
+		g.r.Mouse(cx, cy, MOVE)
 	}
 
 	mouse := ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
 	if !g.mousePressed && mouse {
-		g.r.Mouse(float32(cx), float32(cy), PRESS)
+		g.r.Mouse(cx, cy, PRESS)
 	} else if g.mousePressed && !mouse {
-		g.r.Mouse(float32(cx), float32(cy), RELEASE)
+		g.r.Mouse(cx, cy, RELEASE)
 	}
 	g.mousePressed = mouse
 
@@ -110,12 +110,13 @@ func (g *ebitenGame) Update() error {
 	}
 
 	// TODO
-	// now := time.Now().UnixNano()
-	// dt := float64(((now - g.prev) / 1000000)) * 0.001
-	// g.prev = now
+	now := time.Now().UnixNano()
+	dt := float64(((now - g.prev) / 1000000)) * 0.001
+	g.prev = now
 	// dt := 1.0 / ebiten.CurrentTPS()
 
-	g.r.Update(1.0 / float32(ebiten.MaxTPS()))
+	g.r.Update(dt)
+	// g.r.Update(1.0 / float64(ebiten.MaxTPS()))
 	return nil
 }
 
@@ -128,6 +129,10 @@ func (g *ebitenGame) Draw(scr *ebiten.Image) {
 }
 
 func (g *ebitenGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	// println("!!!")
+	// println(outsideWidth, outsideHeight, g.w, g.h)
+	// println(float64(outsideWidth)/float64(g.w), float64(outsideHeight)/float64(g.h))
+	// return outsideWidth, outsideHeight
 	return g.w, g.h
 }
 
@@ -142,6 +147,11 @@ func run(title string, width, height int, fullscreen bool) {
 	ebiten.SetWindowTitle(title)
 	ebiten.SetWindowSize(width, height)
 	ebiten.SetFullscreen(fullscreen)
+	ebiten.SetWindowDecorated(!fullscreen)
+	// ebiten.SetVsyncEnabled(true)
+	// ebiten.SetWindowDecorated(!fullscreen)
+	// ebiten.SetMaxTPS(ebiten.UncappedTPS)
+	// ebiten.SetScreenClearedEveryFrame(true)
 
 	// window.SetScrollCallback(func(window *glfw.Window, xoff, yoff float64) {
 	// 	responder.Scroll(float32(yoff))
