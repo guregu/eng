@@ -8,6 +8,7 @@ import (
 	"image"
 	"io"
 	// "math"
+	"io/fs"
 	"path"
 	"path/filepath"
 
@@ -107,7 +108,7 @@ func (l *Loader) Load(onFinish func()) {
 			fatalErr(err)
 			l.sfx[r.name] = data
 			l.loaded[r] = struct{}{}
-		case "flac":
+		case "mp3" /*, "flac"*/ :
 			data, err := loadMusic(r)
 			fatalErr(err)
 			l.music[r.name] = data
@@ -115,6 +116,41 @@ func (l *Loader) Load(onFinish func()) {
 		}
 	}
 	onFinish()
+}
+
+func (l *Loader) LoadFS(fsys fs.FS, onFinish func()) {
+	for _, r := range l.resources {
+		if _, loaded := l.loaded[r]; loaded {
+			// don't load stuff twice
+			continue
+		}
+		switch r.kind {
+		case "png":
+			data, err := loadImage(r)
+			fatalErr(err)
+			l.images[r.name] = NewTexture(data)
+			l.loaded[r] = struct{}{}
+			// spew.Dump(data, err)
+		case "json":
+			data, err := loadJson(r)
+			fatalErr(err)
+			l.jsons[r.name] = data
+			l.loaded[r] = struct{}{}
+		case "wav" /*, "flac-sfx"*/ :
+			data, err := loadSFX(r)
+			fatalErr(err)
+			l.sfx[r.name] = data
+			l.loaded[r] = struct{}{}
+		case "mp3" /*, "flac"*/ :
+			data, err := loadMusic(r)
+			fatalErr(err)
+			l.music[r.name] = data
+			l.loaded[r] = struct{}{}
+		}
+	}
+	if onFinish != nil {
+		onFinish()
+	}
 }
 
 type Image interface {

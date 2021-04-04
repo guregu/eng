@@ -14,7 +14,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	// 	"runtime"
+	"runtime"
 	// 	"time"
 	// 	webgl "engo.io/gl"
 	// 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -318,6 +318,10 @@ func loadImage(r Resource) (Image, error) {
 }
 
 func loadJson(r Resource) (string, error) {
+	if r.reader != nil {
+		f, err := ioutil.ReadAll(r.reader)
+		return string(f), err
+	}
 	file, err := ioutil.ReadFile(r.url)
 	if err != nil {
 		return "", err
@@ -395,6 +399,9 @@ func Minimize() {
 }
 
 func AppDir() string {
+	if runtime.GOOS == "js" {
+		return ""
+	}
 	dir, err := osext.ExecutableFolder()
 	fatalErr(err)
 	return dir
