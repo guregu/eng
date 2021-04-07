@@ -6,15 +6,15 @@ package engi
 
 import (
 	"image"
+	"image/draw"
+	_ "image/png"
 	"io"
-	// "math"
-	"io/fs"
+	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	// "github.com/davecgh/go-spew/spew"
-	// webgl "engo.io/gl"
 )
 
 type Resource struct {
@@ -31,6 +31,7 @@ type Loader struct {
 	jsons     map[string]string
 	sfx       map[string]*SFX
 	music     map[string]*Music
+	text      map[string][]byte
 }
 
 func NewLoader() *Loader {
@@ -41,6 +42,7 @@ func NewLoader() *Loader {
 		jsons:     make(map[string]string),
 		sfx:       make(map[string]*SFX),
 		music:     make(map[string]*Music),
+		text:      make(map[string][]byte),
 	}
 }
 
@@ -85,6 +87,10 @@ func (l *Loader) Music(name string) *Music {
 	return l.music[name]
 }
 
+func (l *Loader) Text(name string) []byte {
+	return l.text[name]
+}
+
 func (l *Loader) Load(onFinish func()) {
 	for _, r := range l.resources {
 		if _, loaded := l.loaded[r]; loaded {
@@ -96,57 +102,25 @@ func (l *Loader) Load(onFinish func()) {
 			data, err := loadImage(r)
 			fatalErr(err)
 			l.images[r.name] = NewTexture(data)
-			l.loaded[r] = struct{}{}
 			// spew.Dump(data, err)
 		case "json":
 			data, err := loadJson(r)
 			fatalErr(err)
 			l.jsons[r.name] = data
-			l.loaded[r] = struct{}{}
 		case "wav" /*, "flac-sfx"*/ :
 			data, err := loadSFX(r)
 			fatalErr(err)
 			l.sfx[r.name] = data
-			l.loaded[r] = struct{}{}
 		case "mp3" /*, "flac"*/ :
 			data, err := loadMusic(r)
 			fatalErr(err)
 			l.music[r.name] = data
-			l.loaded[r] = struct{}{}
+		case "tsx":
+			text, err := loadText(r)
+			fatalErr(err)
+			l.text[r.name] = text
 		}
-	}
-	onFinish()
-}
-
-func (l *Loader) LoadFS(fsys fs.FS, onFinish func()) {
-	for _, r := range l.resources {
-		if _, loaded := l.loaded[r]; loaded {
-			// don't load stuff twice
-			continue
-		}
-		switch r.kind {
-		case "png":
-			data, err := loadImage(r)
-			fatalErr(err)
-			l.images[r.name] = NewTexture(data)
-			l.loaded[r] = struct{}{}
-			// spew.Dump(data, err)
-		case "json":
-			data, err := loadJson(r)
-			fatalErr(err)
-			l.jsons[r.name] = data
-			l.loaded[r] = struct{}{}
-		case "wav" /*, "flac-sfx"*/ :
-			data, err := loadSFX(r)
-			fatalErr(err)
-			l.sfx[r.name] = data
-			l.loaded[r] = struct{}{}
-		case "mp3" /*, "flac"*/ :
-			data, err := loadMusic(r)
-			fatalErr(err)
-			l.music[r.name] = data
-			l.loaded[r] = struct{}{}
-		}
+		l.loaded[r] = struct{}{}
 	}
 	if onFinish != nil {
 		onFinish()
@@ -265,4 +239,71 @@ func NewSprite(region *Region, x, y float64) *Sprite {
 
 func (s *Sprite) Render(batch *Batch) {
 	batch.Draw(s.Region, s.Position.X, s.Position.Y, s.Anchor.X, s.Anchor.Y, s.Scale.X, s.Scale.Y, s.Rotation, s.Color, s.Alpha)
+}
+
+func loadText(r Resource) ([]byte, error) {
+	if r.reader != nil {
+		return io.ReadAll(r.reader)
+	}
+
+	if r.url != "" {
+		// TODO?
+	}
+
+	panic("loadText no reader: " + r.name)
+}
+
+func loadImage(r Resource) (Image, error) {
+	reader := r.reader
+	if r.reader == nil {
+		file, err := os.Open(r.url)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+		reader = file
+	}
+
+	img, _, err := image.Decode(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	b := img.Bounds()
+	newm := image.NewNRGBA(image.Rect(0, 0, b.Dx(), b.Dy()))
+	draw.Draw(newm, newm.Bounds(), img, b.Min, draw.Src)
+
+	return &ImageObject{newm}, nil
+}
+
+func loadJson(r Resource) (string, error) {
+	if r.reader != nil {
+		f, err := ioutil.ReadAll(r.reader)
+		return string(f), err
+	}
+	file, err := ioutil.ReadFile(r.url)
+	if err != nil {
+		return "", err
+	}
+	return string(file), nil
+}
+
+func NewImageObject(img *image.NRGBA) *ImageObject {
+	return &ImageObject{img}
+}
+
+type ImageObject struct {
+	data *image.NRGBA
+}
+
+func (i *ImageObject) Data() interface{} {
+	return i.data
+}
+
+func (i *ImageObject) Width() int {
+	return i.data.Rect.Max.X
+}
+
+func (i *ImageObject) Height() int {
+	return i.data.Rect.Max.Y
 }

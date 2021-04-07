@@ -6,34 +6,31 @@ package engi
 
 import (
 	"image/color"
+	"log"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/kardianos/osext"
 )
-
-// import webgl "engo.io/gl"
 
 var screen *ebiten.Image
 
 var (
 	responder Responder
-	Time      *Clock
 	Files     *Loader
 	bgColor   color.Color
-	// gl        *webgl.Context
 )
 
 func Open(title string, width, height int, fullscreen bool, r Responder) {
 	responder = r
-	Time = NewClock()
+	// Time = NewClock()
 	Files = NewLoader()
 	run(title, width, height, fullscreen)
 }
 
 func SetBg(c uint32) {
-	// bgColor = c
-	// TODO
 	r := uint8((c >> 16) & 0xFF)
 	g := uint8((c >> 8) & 0xFF)
 	b := uint8(c & 0xFF)
@@ -110,29 +107,23 @@ func (g *ebitenGame) Update() error {
 	}
 
 	// TODO
-	now := time.Now().UnixNano()
-	dt := float64(((now - g.prev) / 1000000)) * 0.001
-	g.prev = now
-	// dt := 1.0 / ebiten.CurrentTPS()
+	// now := time.Now().UnixNano()
+	// dt := float64(((now - g.prev) / 1000000)) * 0.001
+	// g.prev = now
+	// // dt := 1.0 / ebiten.CurrentTPS()
 
-	g.r.Update(dt)
-	// g.r.Update(1.0 / float64(ebiten.MaxTPS()))
+	// g.r.Update(dt)
+	g.r.Update(1.0 / float64(ebiten.MaxTPS()))
 	return nil
 }
-
-// var
 
 func (g *ebitenGame) Draw(scr *ebiten.Image) {
 	screen = scr
 	scr.Fill(bgColor)
-	g.r.Render() // TODO
+	g.r.Render()
 }
 
 func (g *ebitenGame) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	// println("!!!")
-	// println(outsideWidth, outsideHeight, g.w, g.h)
-	// println(float64(outsideWidth)/float64(g.w), float64(outsideHeight)/float64(g.h))
-	// return outsideWidth, outsideHeight
 	return g.w, g.h
 }
 
@@ -161,10 +152,8 @@ func run(title string, width, height int, fullscreen bool) {
 	// 	responder.Type(char)
 	// })
 
-	// setupAudio()
-
 	responder.Preload()
-	Files.Load(func() {})
+	// Files.Load(func() {})
 	responder.Setup()
 
 	if err := ebiten.RunGame(g); err != nil {
@@ -175,4 +164,25 @@ func run(title string, width, height int, fullscreen bool) {
 	if OnClose != nil {
 		OnClose()
 	}
+}
+
+func fatalErr(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+var OnClose func()
+
+func Minimize() {
+	ebiten.MinimizeWindow()
+}
+
+func AppDir() string {
+	if runtime.GOOS == "js" {
+		return ""
+	}
+	dir, err := osext.ExecutableFolder()
+	fatalErr(err)
+	return dir
 }

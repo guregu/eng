@@ -5,19 +5,11 @@
 package engi
 
 import (
-	// "image/color"
-	"log"
-	// "math"
 	"fmt"
-
-	// webgl "engo.io/gl"
-
-	_ "github.com/davecgh/go-spew/spew"
+	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-const size = 10000
 
 type Drawable interface {
 	Texture() *ebiten.Image
@@ -27,13 +19,14 @@ type Drawable interface {
 }
 
 type Batch struct {
-	screen *ebiten.Image
+}
+
+func (b *Batch) Screen() *ebiten.Image {
+	return screen
 }
 
 func NewBatch(width, height float64) *Batch {
-	batch := &Batch{
-		screen: screen,
-	}
+	batch := &Batch{}
 	return batch
 }
 
@@ -43,9 +36,6 @@ func (b *Batch) End() {}
 
 func (b *Batch) SetProjection(width, height float64) {
 	fmt.Println("setproj", width, height)
-	// TODO
-	// b.projX = width / 2
-	// b.projY = height / 2
 }
 
 func (b *Batch) Draw(r Drawable, x, y, originX, originY, scaleX, scaleY, rotation float64, colorpack uint32, transparency float64) {
